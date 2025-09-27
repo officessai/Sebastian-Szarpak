@@ -1,0 +1,1176 @@
+
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8" />
+    <!-- Security Policy to allow local scripts and styles -->
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://esm.sh; object-src 'self'">
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Freeday - Twój osobisty AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.3.1",
+        "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+        "@google/genai": "https://esm.sh/@google/genai@0.14.0"
+      }
+    }
+    </script>
+    <style>
+        body {
+            color-scheme: dark;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-green-900 to-black">
+    <div id="root"></div>
+
+    <script>
+      // In a browser environment, process.env is not available.
+      // This shim prevents the application from crashing.
+      // IMPORTANT: You must replace the empty string with your actual Google Gemini API key for the app to work.
+      window.process = {
+        env: {
+          API_KEY: "" // <-- PASTE YOUR GEMINI API KEY HERE
+        }
+      };
+    </script>
+
+    <script type="module">
+        import React from 'react';
+        import ReactDOM from 'react-dom/client';
+        import { GoogleGenAI } from "@google/genai";
+
+        // Deconstruct React hooks for convenience
+        const { useState, useEffect, useRef } = React;
+
+        // --- START: components/icons/Icons.tsx ---
+        const LogoIcon = ({ className }) => (
+            React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", viewBox: "0 0 24 24", fill: "none", className: className },
+                React.createElement("defs", null,
+                    React.createElement("linearGradient", { id: "logoGradient", x1: "0%", y1: "0%", x2: "100%", y2: "100%" },
+                        React.createElement("stop", { offset: "0%", stopColor: "#34d399" }),
+                        React.createElement("stop", { offset: "100%", stopColor: "#059669" })
+                    )
+                ),
+                React.createElement("circle", { cx: "12", cy: "12", r: "12", fill: "url(#logoGradient)" }),
+                React.createElement("path", {
+                    d: "M10.5 7.5 H 15.5 V 9.5 H 12 V 12 H 14.5 V 14 H 12 V 16.5 H 10.5 V 7.5 Z",
+                    fill: "white",
+                    transform: "skewX(-10) translate(-1, 0)"
+                }),
+                React.createElement("circle", { cx: "12", cy: "12", r: "12", fill: "url(#logoGradient)", opacity: "0.2" })
+            )
+        );
+        const SparklesIcon = ({ className }) => (
+          React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", viewBox: "0 0 24 24", fill: "currentColor", className: className },
+            React.createElement("path", { fillRule: "evenodd", d: "M9 4.5a.75.75 0 01.721.544l.813 2.846a3.75 3.75 0 002.846.813l2.846-.813a.75.75 0 01.886.671l-.813 2.846a3.75 3.75 0 00.813 2.846l2.846.813a.75.75 0 01.671.886l-2.846.813a3.75 3.75 0 00-.813 2.846l.813 2.846a.75.75 0 01-.886.671l-2.846-.813a3.75 3.75 0 00-2.846.813l-.813 2.846a.75.75 0 01-.671.886l.813-2.846a3.75 3.75 0 00-.813-2.846l-2.846-.813a.75.75 0 01-.671-.886l2.846-.813a3.75 3.75 0 00.813-2.846l-.813-2.846a.75.75 0 01.671-.886l2.846.813a3.75 3.75 0 002.846-.813l.813-2.846A.75.75 0 019 4.5zM15 1.5a.75.75 0 01.721.544l.63 2.205a3 3 0 002.277.651l2.277-.651a.75.75 0 01.709.537l-.651 2.277a3 3 0 00.651 2.277l2.277.651a.75.75 0 01.537.709l-2.277.651a3 3 0 00-.651 2.277l.651 2.277a.75.75 0 01-.709.537l-2.277-.651a3 3 0 00-2.277.651l-.63 2.205a.75.75 0 01-.537.709l.651-2.277a3 3 0 00-.651-2.277l-2.277-.651a.75.75 0 01-.537-.709l2.277-.651a3 3 0 00.651-2.277l-.651-2.277a.75.75 0 01.709-.537l2.277.651a3 3 0 002.277-.651l.63-2.205A.75.75 0 0115 1.5z", clipRule: "evenodd" })
+          )
+        );
+        const MagicWandIcon = ({ className }) => (
+            React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", viewBox: "0 0 24 24", fill: "currentColor", className: className },
+                React.createElement("path", { fillRule: "evenodd", d: "M9.528 1.718a.75.75 0 0 1 .162.819A8.97 8.97 0 0 0 9 6a9 9 0 0 0 9 9 8.97 8.97 0 0 0 3.463-.69a.75.75 0 0 1 .819.162l4.125 3.352a.75.75 0 0 1-.671 1.34l-4.125-3.352a.75.75 0 0 1-.162-.819A10.474 10.474 0 0 1 18 16.5a10.5 10.5 0 0 1-10.5 10.5 10.474 10.474 0 0 1-3.463-.69a.75.75 0 0 1-.819-.162l-4.125 3.352a.75.75 0 0 1 .671-1.34l4.125-3.352a.75.75 0 0 1 .162.819A8.97 8.97 0 0 0 9 18a9 9 0 0 0-9-9 8.97 8.97 0 0 0-.69 3.463a.75.75 0 0 1-1.34-.671l3.352-4.125a.75.75 0 0 1 .819-.162A10.474 10.474 0 0 1 7.5 9a10.5 10.5 0 0 1 10.5-10.5 10.474 10.474 0 0 1 3.463.69a.75.75 0 0 1 .162.819l-3.352 4.125a.75.75 0 0 1-1.34-.671l3.352-4.125a.75.75 0 0 1 .162-.819Z", clipRule: "evenodd" })
+            )
+        );
+        const SendIcon = ({ className }) => (
+            React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", viewBox: "0 0 24 24", fill: "currentColor", className: className },
+                React.createElement("path", { d: "M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" })
+            )
+        );
+        const ChatBubbleLeftRightIcon = ({ className }) => (
+            React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", className: className },
+              React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193l-3.72 3.72a.75.75 0 0 1-1.06 0l-3.72-3.72C9.347 16.9 8.5 15.936 8.5 14.8V10.608c0-.97.616-1.813 1.5-2.097L12 6.75l1.75 1.025 2.25 1.313a.75.75 0 0 0 .498 0l1.75-1.025L20.25 8.511ZM6.5 14.8v-4.286c0-.97.616-1.813 1.5-2.097L12 6.75l-4.75 2.772a.75.75 0 0 0-.5 1.313v4.286c0 1.136.847 2.1 1.98 2.193l3.72 3.72a.75.75 0 0 1 1.06 0l-3.72-3.72C7.347 16.9 6.5 15.936 6.5 14.8Z" })
+            )
+        );
+        const BookOpenIcon = ({ className }) => (
+            React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", className: className },
+              React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6-2.292m0 0V21" })
+            )
+        );
+        const VideoCameraIcon = ({ className }) => (
+            React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", className: className },
+                React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9A2.25 2.25 0 0 0 4.5 18.75Z" })
+            )
+        );
+        const PhotoIcon = ({ className }) => (
+            React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", className: className },
+                React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M2.25 15.75l5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" })
+            )
+        );
+        const SearchIcon = ({ className }) => (
+            React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", className: className },
+                React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" })
+            )
+        );
+        const XMarkIcon = ({ className }) => (
+            React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", className: className },
+                React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M6 18 18 6M6 6l12 12" })
+            )
+        );
+        const PaintBrushIcon = ({ className }) => (
+            React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", className: className },
+                React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.475 2.118A2.25 2.25 0 0 0 7.5 21H9a2.25 2.25 0 0 0 2.25-2.25 2.25 2.25 0 0 0-2.475-2.118c-.352-.047-.704-.094-1.054-.142ZM9 9.531c0-2.612 2.12-4.73 4.73-4.73a4.73 4.73 0 0 1 4.73 4.73c0 .243-.018.482-.053.715a.75.75 0 0 1-1.458.214 3.23 3.23 0 0 0-.03-1.07 3.23 3.23 0 0 0-3.198-2.784 3.23 3.23 0 0 0-3.23 3.23c0 .352.047.704.142 1.054a.75.75 0 1 1-1.458-.214A4.73 4.73 0 0 1 9 9.531Z" }),
+                React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L6 6" })
+            )
+        );
+        const CloudIcon = ({ className }) => (
+            React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", className: className },
+              React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M2.25 15a4.5 4.5 0 0 0 4.5 4.5H18a3.75 3.75 0 0 0 1.332-7.257 3 3 0 0 0-3.758-3.848 5.25 5.25 0 0 0-9.632 2.28A4.5 4.5 0 0 0 2.25 15Z" })
+            )
+        );
+        const ServerIcon = ({ className }) => (
+            React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", className: className },
+                React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M21.75 17.25v-.228a4.5 4.5 0 0 0-.12-1.03l-2.268-9.64a3.375 3.375 0 0 0-3.285-2.65H8.228a3.375 3.375 0 0 0-3.285 2.65l-2.268 9.64a4.5 4.5 0 0 0-.12 1.03v.228m19.5 0a3 3 0 0 1-3 3H5.25a3 3 0 0 1-3-3m19.5 0a3 3 0 0 0-3-3H5.25a3 3 0 0 0-3 3m16.5 0h.008v.008h-.008v-.008Zm-3 0h.008v.008h-.008v-.008Z" })
+            )
+        );
+        const HeartPlusIcon = ({ className }) => (
+            React.createElement("svg", { xmlns: "http://www.w3.org/2000/svg", fill: "none", viewBox: "0 0 24 24", strokeWidth: 1.5, stroke: "currentColor", className: className },
+              React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" }),
+              React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M12 6v6m0 0v6m0-6h6m-6 0H6" })
+            )
+        );
+        // --- END: components/icons/Icons.tsx ---
+
+        // --- START: components/LoadingSpinner.tsx ---
+        const LoadingSpinner = () => {
+          return (
+            React.createElement("svg", {
+              className: "animate-spin h-5 w-5 text-white",
+              xmlns: "http://www.w3.org/2000/svg",
+              fill: "none",
+              viewBox: "0 0 24 24"
+            },
+              React.createElement("circle", {
+                className: "opacity-25",
+                cx: "12",
+                cy: "12",
+                r: "10",
+                stroke: "currentColor",
+                strokeWidth: "4"
+              }),
+              React.createElement("path", {
+                className: "opacity-75",
+                fill: "currentColor",
+                d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              })
+            )
+          );
+        };
+        // --- END: components/LoadingSpinner.tsx ---
+
+        // --- START: services/geminiService.ts ---
+        const API_KEY = process.env.API_KEY;
+        if (!API_KEY) {
+          console.error("Zmienna środowiskowa API_KEY nie jest ustawiona. Niektóre funkcje mogą nie działać.");
+        }
+        const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+        const DOCTOR_SYSTEM_INSTRUCTION = 'Jesteś pomocnym asystentem AI, który analizuje objawy zdrowotne. Twoim celem jest dostarczenie ogólnych informacji i możliwych przyczyn, ale NIGDY nie stawiasz ostatecznej diagnozy. Zawsze, na początku i na końcu swojej odpowiedzi, musisz umieścić wyraźne ostrzeżenie, że nie jesteś prawdziwym lekarzem i że użytkownik powinien skonsultować się z profesjonalistą medycznym w celu uzyskania dokładnej diagnozy i leczenia. Odpowiadaj w sposób empatyczny, ale rzeczowy. Używaj prostego i zrozumiałego języka.';
+        
+        const generateStory = async (prompt) => {
+          if (!API_KEY) throw new Error("API_KEY not configured.");
+          const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `Napisz krótką, kreatywną historię na podstawie tego opisu: ${prompt}`,
+            config: {
+              systemInstruction: 'Jesteś kreatywnym gawędziarzem, który pisze wciągające i barwne opowieści.',
+            },
+          });
+          return response.text;
+        };
+
+        const analyzeSymptoms = async (symptoms) => {
+          if (!API_KEY) throw new Error("API_KEY not configured.");
+          const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `Przeanalizuj następujące objawy: "${symptoms}". Podaj możliwe przyczyny, ogólne zalecenia i wskaż, kiedy należy pilnie skontaktować się z lekarzem.`,
+            config: {
+              systemInstruction: DOCTOR_SYSTEM_INSTRUCTION,
+            },
+          });
+          return response.text;
+        };
+
+        const generateImage = async (prompt) => {
+            if (!API_KEY) throw new Error("API_KEY not configured.");
+            const response = await ai.models.generateImages({
+                model: 'imagen-4.0-generate-001',
+                prompt: prompt,
+                config: {
+                  numberOfImages: 1,
+                  outputMimeType: 'image/png',
+                  aspectRatio: '1:1',
+                },
+            });
+            
+            const base64ImageBytes = response.generatedImages[0].image.imageBytes;
+            return `data:image/png;base64,${base64ImageBytes}`;
+        };
+
+        const fileToBase64 = async (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve((reader.result).split(',')[1]);
+                reader.onerror = (error) => reject(error);
+            });
+        };
+
+        const generateVideo = async (prompt, image, onProgress) => {
+          if (!API_KEY) throw new Error("API_KEY not configured.");
+          onProgress('Rozpoczynam generowanie wideo...');
+          
+          const request = {
+            model: 'veo-2.0-generate-001',
+            prompt: prompt,
+            config: {
+                numberOfVideos: 1
+            }
+          };
+
+          if (image) {
+              onProgress('Przetwarzam obraz...');
+              const imageBase64 = await fileToBase64(image);
+              request.image = {
+                  imageBytes: imageBase64,
+                  mimeType: image.type
+              };
+          }
+
+          onProgress('Wysyłam zapytanie do modelu...');
+          let operation = await ai.models.generateVideos(request);
+          
+          onProgress('Model przyjął zadanie. Oczekiwanie może potrwać kilka minut...');
+          let progressCounter = 0;
+          const progressMessages = [
+              'Model przygotowuje scenę...',
+              'Renderowanie pierwszych klatek...',
+              'Łączenie ujęć w całość...',
+              'Dodawanie ostatnich szlifów...',
+              'Już prawie gotowe, chwila cierpliwości!'
+          ];
+
+          while (!operation.done) {
+            await new Promise(resolve => setTimeout(resolve, 10000));
+            onProgress(progressMessages[progressCounter % progressMessages.length]);
+            progressCounter++;
+            operation = await ai.operations.getVideosOperation({ operation: operation });
+          }
+
+          onProgress('Generowanie zakończone!');
+          const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+
+          if (!downloadLink) {
+            throw new Error("Nie udało się uzyskać linku do pobrania wideo.");
+          }
+
+          onProgress('Pobieram wideo...');
+          const response = await fetch(`${downloadLink}&key=${API_KEY}`);
+          if (!response.ok) {
+            throw new Error("Pobieranie wideo nie powiodło się.");
+          }
+          const videoBlob = await response.blob();
+          return URL.createObjectURL(videoBlob);
+        };
+
+        const LOCAL_AI_ENDPOINT = 'http://localhost:1234/v1/chat/completions';
+
+        const generateLocalChatCompletion = async (messages, systemInstruction, modelName) => {
+            const apiMessages = [
+                { role: 'system', content: systemInstruction },
+                ...messages.map(msg => ({
+                    role: msg.sender === 'ai' ? 'assistant' : 'user',
+                    content: msg.text
+                }))
+            ];
+
+            const response = await fetch(LOCAL_AI_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: modelName,
+                    messages: apiMessages,
+                    temperature: 0.7,
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("Błąd serwera lokalnego AI:", errorText);
+                throw new Error('Lokalny model AI nie odpowiedział poprawnie. Upewnij się, że serwer jest uruchomiony.');
+            }
+
+            const data = await response.json();
+            return data.choices[0]?.message?.content || '';
+        };
+
+        const generateLocalText = async (prompt, systemInstruction, modelName) => {
+          const apiMessages = [
+              { role: 'system', content: systemInstruction },
+              { role: 'user', content: prompt }
+          ];
+
+          const response = await fetch(LOCAL_AI_ENDPOINT, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  model: modelName,
+                  messages: apiMessages,
+                  temperature: 0.7,
+              })
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Błąd serwera lokalnego AI:", errorText);
+            throw new Error('Lokalny model AI nie odpowiedział poprawnie. Upewnij się, że serwer jest uruchomiony.');
+          }
+
+          const data = await response.json();
+          return data.choices[0]?.message?.content || '';
+        };
+        // --- END: services/geminiService.ts ---
+
+        // --- START: components/Chat.tsx ---
+        const Chat = ({ personaName, messages, isLoading, onSendMessage, isReady }) => {
+          const [time, setTime] = useState(new Date());
+          const [input, setInput] = useState('');
+          const messagesEndRef = useRef(null);
+
+          useEffect(() => {
+            const timer = setInterval(() => setTime(new Date()), 60 * 1000);
+            return () => clearInterval(timer);
+          }, []);
+
+          useEffect(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+          }, [messages, isLoading]);
+
+          const handleSendMessageClick = () => {
+              onSendMessage(input);
+              setInput('');
+          };
+          
+          const handleKeyPress = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessageClick();
+            }
+          };
+
+          const formattedTime = time.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+          const formattedDate = time.toLocaleDateString('pl-PL', { weekday: 'long', month: 'long', day: 'numeric' });
+
+          return React.createElement("div", { className: "w-full h-full p-6 flex flex-col text-gray-200" },
+            React.createElement("header", { className: "flex justify-between items-center mb-4 flex-shrink-0" },
+              React.createElement("h1", { className: "text-2xl font-bold" }, personaName),
+              React.createElement(LogoIcon, { className: "w-9 h-9" })
+            ),
+            React.createElement("section", { className: "mb-4 text-center flex-shrink-0" },
+              React.createElement("p", { className: "text-5xl font-bold tracking-tight" }, formattedTime),
+              React.createElement("p", { className: "text-gray-400" }, formattedDate)
+            ),
+            React.createElement("main", { className: "flex-grow flex flex-col gap-4 overflow-y-auto pr-2 -mr-2 pb-2" },
+              messages.map((msg, index) => (
+                React.createElement("div", { key: index, className: `flex gap-3 items-start ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}` },
+                  msg.sender === 'ai' && React.createElement(LogoIcon, { className: "w-8 h-8 flex-shrink-0" }),
+                  React.createElement("div", { className: `max-w-[85%] px-4 py-2 rounded-2xl ${msg.sender === 'user' ? 'bg-gradient-to-br from-green-500 to-teal-500 text-white rounded-br-lg shadow-md' : 'bg-gray-800/80 rounded-bl-lg'}` },
+                    React.createElement("p", { className: "whitespace-pre-wrap text-sm leading-relaxed" }, msg.text)
+                  )
+                )
+              )),
+              isLoading && messages.length > 0 && (
+                React.createElement("div", { className: "flex gap-3 items-start justify-start" },
+                  React.createElement(LogoIcon, { className: "w-8 h-8 flex-shrink-0" }),
+                  React.createElement("div", { className: "max-w-xs px-4 py-3 rounded-2xl rounded-bl-lg bg-gray-800/80 flex items-center" },
+                    React.createElement("span", { className: "w-2 h-2 bg-green-400 rounded-full animate-bounce" }),
+                    React.createElement("span", { className: "w-2 h-2 bg-green-400 rounded-full animate-bounce delay-150 mx-1.5" }),
+                    React.createElement("span", { className: "w-2 h-2 bg-green-400 rounded-full animate-bounce delay-300" })
+                  )
+                )
+              ),
+              React.createElement("div", { ref: messagesEndRef })
+            ),
+            React.createElement("footer", { className: "mt-auto pt-4 flex-shrink-0" },
+              React.createElement("form", { onSubmit: (e) => { e.preventDefault(); handleSendMessageClick(); }, className: "flex items-end gap-2" },
+                React.createElement("textarea", {
+                  value: input,
+                  onChange: (e) => setInput(e.target.value),
+                  onKeyPress: handleKeyPress,
+                  placeholder: "Napisz wiadomość...",
+                  className: "flex-grow bg-gray-900/70 rounded-xl py-3 px-4 resize-none border border-green-500/20 focus:ring-2 focus:ring-green-400 focus:border-transparent outline-none transition text-sm shadow-inner text-gray-200 placeholder-gray-500",
+                  rows: 1,
+                  disabled: !isReady || isLoading,
+                  style: { maxHeight: '100px' },
+                  "aria-label": "Pole do wpisywania wiadomości"
+                }),
+                React.createElement("button", {
+                  type: "submit",
+                  disabled: isLoading || !input.trim() || !isReady,
+                  className: "w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-lg transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-400/50 disabled:bg-gray-600 disabled:from-gray-600 disabled:to-gray-700 disabled:scale-100 disabled:cursor-not-allowed",
+                  "aria-label": "Wyślij wiadomość"
+                },
+                  React.createElement(SendIcon, { className: "w-6 h-6 text-white" })
+                )
+              )
+            )
+          );
+        };
+        // --- END: components/Chat.tsx ---
+
+        // --- START: components/StoryGenerator.tsx ---
+        const StoryGenerator = ({ story, isLoading, error, onGenerateStory }) => {
+          const [prompt, setPrompt] = useState('');
+
+          const handleGenerateClick = () => {
+            onGenerateStory(prompt);
+          };
+
+          const handlePromptChange = (e) => {
+            setPrompt(e.target.value);
+          };
+
+          return (
+            React.createElement("div", { className: "w-full h-full p-6 flex flex-col text-gray-200" },
+              React.createElement("header", { className: "flex justify-between items-center mb-4 flex-shrink-0" },
+                React.createElement("h1", { className: "text-2xl font-bold" }, "Generator Opowieści"),
+                React.createElement(LogoIcon, { className: "w-9 h-9" })
+              ),
+              React.createElement("main", { className: "flex-grow overflow-y-auto pr-2 -mr-2 pb-2" },
+                React.createElement("div", { className: "flex flex-col gap-6" },
+                  React.createElement("div", null,
+                    React.createElement("label", { htmlFor: "story-prompt", className: "flex items-center text-lg font-medium text-gray-300 mb-2" },
+                      React.createElement(MagicWandIcon, { className: "w-5 h-5 mr-2 text-green-400" }),
+                      "O czym powinna być historia?"
+                    ),
+                    React.createElement("textarea", {
+                      id: "story-prompt",
+                      value: prompt,
+                      onChange: handlePromptChange,
+                      placeholder: "np. Opowieść o odważnym rycerzu i gadającym smoku szukających ukrytego skarbu...",
+                      className: "w-full h-28 p-4 bg-gray-900/70 border border-green-500/30 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-300 resize-none text-gray-200 placeholder-gray-500",
+                      disabled: isLoading
+                    })
+                  ),
+                  React.createElement("button", {
+                    onClick: handleGenerateClick,
+                    disabled: isLoading || !prompt.trim(),
+                    className: "group relative w-full flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 overflow-hidden"
+                  },
+                    React.createElement("span", { className: "absolute left-0 top-0 h-full w-0 bg-teal-500 transition-all duration-500 group-hover:w-full group-focus:w-full" }),
+                    React.createElement("span", { className: "relative flex items-center" },
+                      isLoading ? (
+                        React.createElement(React.Fragment, null,
+                          React.createElement(LoadingSpinner, null),
+                          React.createElement("span", { className: "ml-2" }, "Generowanie...")
+                        )
+                      ) : (
+                        React.createElement(React.Fragment, null,
+                          React.createElement(SparklesIcon, { className: "w-5 h-5 mr-2" }),
+                          "Wygeneruj opowieść"
+                        )
+                      )
+                    )
+                  )
+                ),
+                React.createElement("div", { className: "mt-8" },
+                  error && (
+                    React.createElement("div", { className: "bg-red-900/50 text-red-300 border border-red-500/50 rounded-lg p-4 text-center" },
+                      React.createElement("p", null, error)
+                    )
+                  ),
+                  React.createElement("div", { className: "w-full min-h-[200px] bg-gray-900/70 border border-green-500/30 rounded-lg p-6 mt-4 whitespace-pre-wrap text-gray-300 transition-opacity duration-500 flex items-center justify-center" },
+                    isLoading ? (
+                      React.createElement("div", { className: "flex flex-col items-center justify-center h-full text-gray-400 text-center" },
+                        React.createElement(MagicWandIcon, { className: "w-12 h-12 text-green-500 animate-pulse" }),
+                        React.createElement("p", { className: "mt-4 text-lg" }, "Tworzymy fantastyczną opowieść...")
+                      )
+                    ) : story ? (
+                      React.createElement("p", { className: "w-full" }, story)
+                    ) : (
+                      React.createElement("div", { className: "flex flex-col items-center justify-center h-full text-gray-500 text-center" },
+                        React.createElement(BookOpenIcon, { className: "w-12 h-12 text-gray-600 mb-4" }),
+                        React.createElement("p", { className: "text-lg" }, "Twoja wygenerowana historia pojawi się tutaj.")
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          );
+        };
+        // --- END: components/StoryGenerator.tsx ---
+
+        // --- START: components/VideoGenerator.tsx ---
+        const VideoGenerator = ({ videoUrl, isLoading, loadingMessage, error, onGenerateVideo }) => {
+          const [prompt, setPrompt] = useState('');
+          const [image, setImage] = useState(null);
+          const [imagePreview, setImagePreview] = useState(null);
+          const fileInputRef = useRef(null);
+
+          const handleImageChange = (e) => {
+            if (e.target.files && e.target.files[0]) {
+              const file = e.target.files[0];
+              if (file.type.startsWith('image/')) {
+                setImage(file);
+                setImagePreview(URL.createObjectURL(file));
+              }
+            }
+          };
+
+          const removeImage = () => {
+            setImage(null);
+            setImagePreview(null);
+            if(fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+          };
+
+          const handleGenerateClick = () => {
+            onGenerateVideo(prompt, image);
+          };
+
+          return (
+            React.createElement("div", { className: "w-full h-full p-6 flex flex-col text-gray-200" },
+              React.createElement("header", { className: "flex justify-between items-center mb-4 flex-shrink-0" },
+                React.createElement("h1", { className: "text-2xl font-bold" }, "Generator Wideo"),
+                React.createElement(LogoIcon, { className: "w-9 h-9" })
+              ),
+              React.createElement("main", { className: "flex-grow overflow-y-auto pr-2 -mr-2 pb-2" },
+                React.createElement("div", { className: "flex flex-col gap-6" },
+                  React.createElement("div", null,
+                    React.createElement("label", { htmlFor: "video-prompt", className: "text-lg font-medium text-gray-300 mb-2 block" }, "Co chcesz zobaczyć?"),
+                    React.createElement("textarea", {
+                      id: "video-prompt",
+                      value: prompt,
+                      onChange: (e) => setPrompt(e.target.value),
+                      placeholder: "np. Astronauta jeżdżący na deskorolce po Marsie...",
+                      className: "w-full h-24 p-4 bg-gray-900/70 border border-green-500/30 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-300 resize-none text-gray-200 placeholder-gray-500",
+                      disabled: isLoading
+                    })
+                  ),
+                  React.createElement("div", null,
+                    React.createElement("label", { className: "text-lg font-medium text-gray-300 mb-2 block" }, "Dodaj obraz (opcjonalnie)"),
+                    imagePreview ? (
+                      React.createElement("div", { className: "relative group" },
+                        React.createElement("img", { src: imagePreview, alt: "Podgląd obrazu", className: "w-full h-48 object-cover rounded-lg border border-green-500/30" }),
+                        React.createElement("button", { onClick: removeImage, className: "absolute top-2 right-2 p-1.5 bg-black/50 rounded-full text-white hover:bg-black/80 transition-colors opacity-0 group-hover:opacity-100" },
+                          React.createElement(XMarkIcon, { className: "w-5 h-5" })
+                        )
+                      )
+                    ) : (
+                      React.createElement("button", { onClick: () => fileInputRef.current?.click(), disabled: isLoading, className: "w-full h-32 border-2 border-dashed border-green-500/30 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:bg-gray-800/50 hover:border-green-400 transition-colors" },
+                        React.createElement(PhotoIcon, { className: "w-8 h-8 mb-1" }),
+                        React.createElement("span", null, "Kliknij, aby wybrać plik"),
+                        React.createElement("input", { type: "file", ref: fileInputRef, onChange: handleImageChange, accept: "image/*", className: "hidden" })
+                      )
+                    )
+                  ),
+                  React.createElement("button", {
+                    onClick: handleGenerateClick,
+                    disabled: isLoading || !prompt.trim(),
+                    className: "group relative w-full flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 overflow-hidden"
+                  },
+                    React.createElement("span", { className: "absolute left-0 top-0 h-full w-0 bg-teal-500 transition-all duration-500 group-hover:w-full group-focus:w-full" }),
+                    React.createElement("span", { className: "relative flex items-center" },
+                      isLoading ? (
+                        React.createElement(React.Fragment, null,
+                          React.createElement(LoadingSpinner, null),
+                          React.createElement("span", { className: "ml-2" }, "Generowanie...")
+                        )
+                      ) : (
+                        React.createElement(React.Fragment, null,
+                          React.createElement(VideoCameraIcon, { className: "w-5 h-5 mr-2" }),
+                          "Wygeneruj wideo"
+                        )
+                      )
+                    )
+                  )
+                ),
+                React.createElement("div", { className: "mt-8" },
+                  error && (
+                    React.createElement("div", { className: "bg-red-900/50 text-red-300 border border-red-500/50 rounded-lg p-4 text-center" },
+                      React.createElement("p", null, error)
+                    )
+                  ),
+                  React.createElement("div", { className: "w-full aspect-video bg-gray-900/70 border border-green-500/30 rounded-lg mt-4 flex items-center justify-center text-gray-400 transition-opacity duration-500 overflow-hidden" },
+                    isLoading ? (
+                      React.createElement("div", { className: "flex flex-col items-center justify-center text-center p-4" },
+                        React.createElement(VideoCameraIcon, { className: "w-12 h-12 text-green-500 animate-pulse" }),
+                        React.createElement("p", { className: "mt-4 text-lg font-semibold" }, "Tworzymy Twoje wideo"),
+                        React.createElement("p", { className: "text-sm" }, loadingMessage)
+                      )
+                    ) : videoUrl ? (
+                      React.createElement("video", { src: videoUrl, controls: true, autoPlay: true, loop: true, className: "w-full h-full object-contain" })
+                    ) : (
+                      React.createElement("div", { className: "flex flex-col items-center justify-center h-full text-center" },
+                        React.createElement(VideoCameraIcon, { className: "w-12 h-12 text-gray-600 mb-4" }),
+                        React.createElement("p", { className: "text-lg" }, "Twoje wideo pojawi się tutaj.")
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          );
+        };
+        // --- END: components/VideoGenerator.tsx ---
+
+        // --- START: components/ImageGenerator.tsx ---
+        const ImageGenerator = ({ imageUrl, isLoading, error, onGenerateImage }) => {
+          const [prompt, setPrompt] = useState('');
+
+          const handleGenerateClick = () => {
+            onGenerateImage(prompt);
+          };
+
+          const handlePromptChange = (e) => {
+            setPrompt(e.target.value);
+          };
+
+          return (
+            React.createElement("div", { className: "w-full h-full p-6 flex flex-col text-gray-200" },
+              React.createElement("header", { className: "flex justify-between items-center mb-4 flex-shrink-0" },
+                React.createElement("h1", { className: "text-2xl font-bold" }, "Generator Obrazów"),
+                React.createElement(LogoIcon, { className: "w-9 h-9" })
+              ),
+              React.createElement("main", { className: "flex-grow overflow-y-auto pr-2 -mr-2 pb-2" },
+                React.createElement("div", { className: "flex flex-col gap-6" },
+                  React.createElement("div", null,
+                    React.createElement("label", { htmlFor: "image-prompt", className: "flex items-center text-lg font-medium text-gray-300 mb-2" },
+                      React.createElement(MagicWandIcon, { className: "w-5 h-5 mr-2 text-green-400" }),
+                      "Co chcesz wygenerować?"
+                    ),
+                    React.createElement("textarea", {
+                      id: "image-prompt",
+                      value: prompt,
+                      onChange: handlePromptChange,
+                      placeholder: "np. Surrealistyczny obraz kota grającego na pianinie na księżycu...",
+                      className: "w-full h-28 p-4 bg-gray-900/70 border border-green-500/30 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors duration-300 resize-none text-gray-200 placeholder-gray-500",
+                      disabled: isLoading
+                    })
+                  ),
+                  React.createElement("button", {
+                    onClick: handleGenerateClick,
+                    disabled: isLoading || !prompt.trim(),
+                    className: "group relative w-full flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 overflow-hidden"
+                  },
+                    React.createElement("span", { className: "absolute left-0 top-0 h-full w-0 bg-teal-500 transition-all duration-500 group-hover:w-full group-focus:w-full" }),
+                    React.createElement("span", { className: "relative flex items-center" },
+                      isLoading ? (
+                        React.createElement(React.Fragment, null,
+                          React.createElement(LoadingSpinner, null),
+                          React.createElement("span", { className: "ml-2" }, "Generowanie...")
+                        )
+                      ) : (
+                        React.createElement(React.Fragment, null,
+                          React.createElement(SparklesIcon, { className: "w-5 h-5 mr-2" }),
+                          "Wygeneruj obraz"
+                        )
+                      )
+                    )
+                  )
+                ),
+                React.createElement("div", { className: "mt-8" },
+                  error && (
+                    React.createElement("div", { className: "bg-red-900/50 text-red-300 border border-red-500/50 rounded-lg p-4 text-center" },
+                      React.createElement("p", null, error)
+                    )
+                  ),
+                  React.createElement("div", { className: "w-full aspect-square bg-gray-900/70 border border-green-500/30 rounded-lg p-2 mt-4 flex items-center justify-center text-gray-400 transition-opacity duration-500 overflow-hidden" },
+                    isLoading ? (
+                      React.createElement("div", { className: "flex flex-col items-center justify-center h-full text-gray-400 text-center" },
+                        React.createElement(MagicWandIcon, { className: "w-12 h-12 text-green-500 animate-pulse" }),
+                        React.createElement("p", { className: "mt-4 text-lg" }, "Tworzymy Twój obraz...")
+                      )
+                    ) : imageUrl ? (
+                      React.createElement("img", { src: imageUrl, alt: "Wygenerowany obraz", className: "w-full h-full object-contain rounded-md" })
+                    ) : (
+                      React.createElement("div", { className: "flex flex-col items-center justify-center h-full text-gray-500 text-center" },
+                        React.createElement(PhotoIcon, { className: "w-12 h-12 text-gray-600 mb-4" }),
+                        React.createElement("p", { className: "text-lg" }, "Twój wygenerowany obraz pojawi się tutaj.")
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          );
+        };
+        // --- END: components/ImageGenerator.tsx ---
+
+        // --- START: components/Doctor.tsx ---
+        const Doctor = ({ analysis, isLoading, error, onAnalyzeSymptoms }) => {
+          const [symptoms, setSymptoms] = useState('');
+
+          const handleAnalyzeClick = () => {
+            onAnalyzeSymptoms(symptoms);
+          };
+
+          const handleSymptomsChange = (e) => {
+            setSymptoms(e.target.value);
+          };
+
+          return (
+            React.createElement("div", { className: "w-full h-full p-6 flex flex-col text-gray-200" },
+              React.createElement("header", { className: "flex justify-between items-center mb-4 flex-shrink-0" },
+                React.createElement("h1", { className: "text-2xl font-bold" }, "AI Doktor"),
+                React.createElement(LogoIcon, { className: "w-9 h-9" })
+              ),
+              React.createElement("div", { className: "bg-yellow-900/60 border-l-4 border-yellow-500 text-yellow-300 p-4 mb-4 rounded-md text-sm", role: "alert" },
+                React.createElement("p", { className: "font-bold" }, "Ważna informacja"),
+                React.createElement("p", null, "Jestem tylko symulacją AI. Ta analiza nie zastąpi prawdziwej porady lekarskiej. W razie poważnych problemów zdrowotnych, niezwłocznie skonsultuj się z lekarzem.")
+              ),
+              React.createElement("main", { className: "flex-grow overflow-y-auto pr-2 -mr-2 pb-2" },
+                React.createElement("div", { className: "flex flex-col gap-6" },
+                  React.createElement("div", null,
+                    React.createElement("label", { htmlFor: "symptoms-prompt", className: "flex items-center text-lg font-medium text-gray-300 mb-2" }, "Opisz swoje objawy"),
+                    React.createElement("textarea", {
+                      id: "symptoms-prompt",
+                      value: symptoms,
+                      onChange: handleSymptomsChange,
+                      placeholder: "np. Mam ból głowy i gorączkę od dwóch dni...",
+                      className: "w-full h-28 p-4 bg-gray-900/70 border border-green-500/30 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-300 resize-none text-gray-200 placeholder-gray-500",
+                      disabled: isLoading
+                    })
+                  ),
+                  React.createElement("button", {
+                    onClick: handleAnalyzeClick,
+                    disabled: isLoading || !symptoms.trim(),
+                    className: "group relative w-full flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-red-500 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 overflow-hidden"
+                  },
+                    React.createElement("span", { className: "absolute left-0 top-0 h-full w-0 bg-red-500 transition-all duration-500 group-hover:w-full group-focus:w-full" }),
+                    React.createElement("span", { className: "relative flex items-center" },
+                      isLoading ? (
+                        React.createElement(React.Fragment, null,
+                          React.createElement(LoadingSpinner, null),
+                          React.createElement("span", { className: "ml-2" }, "Analizowanie...")
+                        )
+                      ) : (
+                        React.createElement(React.Fragment, null,
+                          React.createElement(HeartPlusIcon, { className: "w-5 h-5 mr-2" }),
+                          "Analizuj objawy"
+                        )
+                      )
+                    )
+                  )
+                ),
+                React.createElement("div", { className: "mt-8" },
+                  error && (
+                    React.createElement("div", { className: "bg-red-900/50 text-red-300 border border-red-500/50 rounded-lg p-4 text-center" },
+                      React.createElement("p", null, error)
+                    )
+                  ),
+                  React.createElement("div", { className: "w-full min-h-[200px] bg-gray-900/70 border border-green-500/30 rounded-lg p-6 mt-4 whitespace-pre-wrap text-gray-300 transition-opacity duration-500 flex items-center justify-center" },
+                    isLoading ? (
+                      React.createElement("div", { className: "flex flex-col items-center justify-center h-full text-gray-400 text-center" },
+                        React.createElement(HeartPlusIcon, { className: "w-12 h-12 text-red-500 animate-pulse" }),
+                        React.createElement("p", { className: "mt-4 text-lg" }, "Analizuję Twoje objawy...")
+                      )
+                    ) : analysis ? (
+                      React.createElement("p", { className: "w-full" }, analysis)
+                    ) : (
+                      React.createElement("div", { className: "flex flex-col items-center justify-center h-full text-gray-500 text-center" },
+                        React.createElement(HeartPlusIcon, { className: "w-12 h-12 text-gray-600 mb-4" }),
+                        React.createElement("p", { className: "text-lg" }, "Twoja wstępna analiza pojawi się tutaj.")
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          );
+        };
+        // --- END: components/Doctor.tsx ---
+
+        // --- START: config/persona.json ---
+        const personaConfig = {
+          "name": "Freeday",
+          "personality": "Twój osobisty AI, który myśli swobodnie i jest otwarty na nowe pomysły. Zawsze gotów do pomocy, wnosi powiew świeżości i wolności do każdej rozmowy.",
+          "instructions": "Jesteś Freeday, osobisty asystent AI. Twoja osobowość jest swobodna, przyjacielska i inspirująca. Myślisz nieszablonowo, łącząc dane w nieoczywisty sposób. Zawsze wspierasz użytkownika, dodając kreatywne i otwarte na dyskusję sugestie. Bądź pomocny i pełen pozytywnej energii.",
+          "wake_word": "Witaj Freeday"
+        };
+        // --- END: config/persona.json ---
+        
+        // --- START: config/local_model.json ---
+        const localModelConfig = {
+          "model": "gpt-oss-20b"
+        };
+        // --- END: config/local_model.json ---
+        
+        // --- START: App.tsx ---
+        const WelcomeScreen = () => (
+            React.createElement("div", { className: "w-full h-full flex flex-col items-center justify-center bg-black/40 rounded-3xl backdrop-blur-2xl border border-green-500/20 text-gray-200" },
+                React.createElement("div", { className: "animate-fade-in-scale" },
+                    React.createElement(LogoIcon, { className: "w-24 h-24" })
+                ),
+                React.createElement("h1", { className: "text-4xl font-bold mt-4 animate-fade-in-up", style: { animationDelay: '200ms' } }, "Freeday"),
+                React.createElement("p", { className: "text-gray-400 mt-1 animate-fade-in-up", style: { animationDelay: '400ms' } }, "Twój osobisty AI."),
+                React.createElement("style", null, `
+                    @keyframes fade-in-scale {
+                        0% { opacity: 0; transform: scale(0.8); }
+                        100% { opacity: 1; transform: scale(1); }
+                    }
+                    @keyframes fade-in-up {
+                        0% { opacity: 0; transform: translateY(20px); }
+                        100% { opacity: 1; transform: translateY(0); }
+                    }
+                    .animate-fade-in-scale { animation: fade-in-scale 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+                    .animate-fade-in-up { animation: fade-in-up 0.6s ease-out forwards; }
+                `)
+            )
+        );
+
+        const App = () => {
+          const [isAppReady, setIsAppReady] = useState(false);
+          const [activeView, setActiveView] = useState('chat');
+          const [apiProvider, setApiProvider] = useState('gemini');
+          const [localModelName, setLocalModelName] = useState(null);
+          const [persona, setPersona] = useState(null);
+          const chatSessionRef = useRef(null);
+          const [chatMessages, setChatMessages] = useState([]);
+          const [isChatLoading, setIsChatLoading] = useState(true);
+          const [storyContent, setStoryContent] = useState('');
+          const [isStoryLoading, setIsStoryLoading] = useState(false);
+          const [storyError, setStoryError] = useState(null);
+          const [videoUrl, setVideoUrl] = useState(null);
+          const [isVideoLoading, setIsVideoLoading] = useState(false);
+          const [videoLoadingMessage, setVideoLoadingMessage] = useState('');
+          const [videoError, setVideoError] = useState(null);
+          const [generatedVideos, setGeneratedVideos] = useState([]);
+          const [imageUrl, setImageUrl] = useState(null);
+          const [isImageLoading, setIsImageLoading] = useState(false);
+          const [imageError, setImageError] = useState(null);
+          const [generatedImages, setGeneratedImages] = useState([]);
+          const [doctorAnalysis, setDoctorAnalysis] = useState('');
+          const [isDoctorLoading, setIsDoctorLoading] = useState(false);
+          const [doctorError, setDoctorError] = useState(null);
+          const [searchQuery, setSearchQuery] = useState('');
+          const [isSearching, setIsSearching] = useState(false);
+          const [searchResults, setSearchResults] = useState([]);
+
+          useEffect(() => {
+            const data = personaConfig;
+            if (data && data.name && data.instructions) {
+                setPersona(data);
+                if (API_KEY) {
+                  chatSessionRef.current = ai.chats.create({
+                      model: 'gemini-2.5-flash',
+                      config: { systemInstruction: data.instructions },
+                  });
+                }
+                setChatMessages([{ sender: 'ai', text: `Cześć! Jestem ${data.name}. W czym mogę Ci dzisiaj pomóc?` }]);
+            } else {
+                console.error("Błąd ładowania pliku persony");
+                setChatMessages([{ sender: 'ai', text: 'Nie udało mi się załadować mojej konfiguracji.' }]);
+            }
+            setIsChatLoading(false);
+            setTimeout(() => setIsAppReady(true), 1800);
+
+            const localModelData = localModelConfig;
+            if (localModelData && localModelData.model) {
+                setLocalModelName(localModelData.model);
+            } else {
+                console.log("Brak konfiguracji modelu lokalnego, funkcjonalność będzie ograniczona.");
+            }
+          }, []);
+
+          const handleApiProviderChange = (provider) => {
+            if (provider !== apiProvider) {
+                setApiProvider(provider);
+                if (persona) {
+                    const modelInfo = provider === 'gemini'
+                        ? 'w chmurze Gemini'
+                        : `lokalnym ${localModelName}`;
+                    setChatMessages([{ sender: 'ai', text: `Cześć! Jestem ${persona.name}. Rozmawiasz teraz z modelem ${modelInfo}. W czym mogę pomóc?` }]);
+                }
+                if (provider === 'gemini' && persona && API_KEY) {
+                     chatSessionRef.current = ai.chats.create({
+                        model: 'gemini-2.5-flash',
+                        config: { systemInstruction: persona.instructions },
+                    });
+                }
+            }
+          };
+
+          const handleSendChatMessage = async (message) => {
+            if (!message.trim() || isChatLoading || !persona) return;
+
+            const userMessage = { sender: 'user', text: message };
+            const newMessages = [...chatMessages, userMessage];
+            setChatMessages(newMessages);
+            setIsChatLoading(true);
+
+            try {
+                let responseText;
+                if (apiProvider === 'gemini') {
+                    if (!chatSessionRef.current) throw new Error("Sesja czatu Gemini nie jest zainicjowana. Sprawdź swój klucz API.");
+                    const response = await chatSessionRef.current.sendMessage({ message });
+                    responseText = response.text;
+                } else {
+                    if (!localModelName) throw new Error("Nazwa modelu lokalnego nie jest załadowana.");
+                    responseText = await generateLocalChatCompletion(newMessages, persona.instructions, localModelName);
+                }
+                const aiMessage = { sender: 'ai', text: responseText };
+                setChatMessages(prev => [...prev, aiMessage]);
+            } catch (err) {
+                console.error(err);
+                const errorMessageText = apiProvider === 'local' 
+                    ? 'Nie udało się połączyć z lokalnym modelem AI. Upewnij się, że serwer jest uruchomiony na porcie 1234.'
+                    : `Coś poszło nie tak. Sprawdź konsolę, by poznać szczegóły błędu. (${err.message})`;
+                const errorMessage = { sender: 'ai', text: errorMessageText };
+                setChatMessages(prev => [...prev, errorMessage]);
+            } finally {
+                setIsChatLoading(false);
+            }
+          };
+
+          const handleGenerateStory = async (prompt) => {
+            if (!prompt.trim() || isStoryLoading || !persona) return;
+            setIsStoryLoading(true);
+            setStoryError(null);
+            setStoryContent('');
+            try {
+              let result;
+              if (apiProvider === 'gemini') {
+                result = await generateStory(prompt);
+              } else {
+                if (!localModelName) throw new Error("Nazwa modelu lokalnego nie jest załadowana.");
+                const storySystemInstruction = 'Jesteś kreatywnym gawędziarzem, który pisze wciągające i barwne opowieści.';
+                const fullPrompt = `Napisz krótką, kreatywną historię na podstawie tego opisu: ${prompt}`;
+                result = await generateLocalText(fullPrompt, storySystemInstruction, localModelName);
+              }
+              setStoryContent(result);
+            } catch (err) {
+              setStoryError('Wystąpił nieoczekiwany błąd. Sprawdź połączenie, klucz API lub serwer lokalny i spróbuj ponownie.');
+              console.error(err);
+            } finally {
+              setIsStoryLoading(false);
+            }
+          };
+
+          const handleGenerateVideo = async (prompt, image) => {
+            if (!prompt.trim() || isVideoLoading) return;
+            setIsVideoLoading(true);
+            setVideoError(null);
+            setVideoUrl(null);
+            try {
+              const resultUrl = await generateVideo(prompt, image, (message) => {
+                setVideoLoadingMessage(message);
+              });
+              setVideoUrl(resultUrl);
+              setGeneratedVideos(prev => [...prev, { prompt, url: resultUrl }]);
+            } catch (err) {
+              setVideoError('Wystąpił błąd podczas generowania wideo. Upewnij się, że klucz API jest poprawny.');
+              console.error(err);
+            } finally {
+              setIsVideoLoading(false);
+              setVideoLoadingMessage('');
+            }
+          };
+
+          const handleGenerateImage = async (prompt) => {
+            if (!prompt.trim() || isImageLoading) return;
+            setIsImageLoading(true);
+            setImageError(null);
+            setImageUrl(null);
+            try {
+              const resultUrl = await generateImage(prompt);
+              setImageUrl(resultUrl);
+              setGeneratedImages(prev => [...prev, { prompt, url: resultUrl }]);
+            } catch (err) {
+              setImageError('Wystąpił błąd podczas generowania obrazu. Upewnij się, że klucz API jest poprawny.');
+              console.error(err);
+            } finally {
+              setIsImageLoading(false);
+            }
+          };
+          
+          const handleAnalyzeSymptoms = async (symptoms) => {
+            if (!symptoms.trim() || isDoctorLoading) return;
+            setIsDoctorLoading(true);
+            setDoctorError(null);
+            setDoctorAnalysis('');
+            try {
+              let result;
+              if (apiProvider === 'gemini') {
+                result = await analyzeSymptoms(symptoms);
+              } else {
+                if (!localModelName) throw new Error("Nazwa modelu lokalnego nie jest załadowana.");
+                const fullPrompt = `Przeanalizuj następujące objawy: "${symptoms}". Podaj możliwe przyczyny, ogólne zalecenia i wskaż, kiedy należy pilnie skontaktować się z lekarzem.`;
+                result = await generateLocalText(fullPrompt, DOCTOR_SYSTEM_INSTRUCTION, localModelName);
+              }
+              setDoctorAnalysis(result);
+            } catch (err) {
+              setDoctorError('Wystąpił nieoczekiwany błąd. Sprawdź połączenie, klucz API lub serwer lokalny i spróbuj ponownie.');
+              console.error(err);
+            } finally {
+              setIsDoctorLoading(false);
+            }
+          };
+
+          const handleSearch = (e) => {
+            e.preventDefault();
+            if (!searchQuery.trim()) {
+                setIsSearching(false);
+                setSearchResults([]);
+                return;
+            }
+            const chatResults = chatMessages
+                .filter(msg => msg.text.toLowerCase().includes(searchQuery.toLowerCase()))
+                .map(msg => ({ type: 'Czat', content: msg.text }));
+            
+            let storyResults = [];
+            if (storyContent.toLowerCase().includes(searchQuery.toLowerCase())) {
+                storyResults.push({ type: 'Opowieść', content: storyContent });
+            }
+            const videoResults = generatedVideos
+                .filter(vid => vid.prompt.toLowerCase().includes(searchQuery.toLowerCase()))
+                .map(vid => ({ type: 'Wideo', content: vid.prompt }));
+            
+            const imageResults = generatedImages
+                .filter(img => img.prompt.toLowerCase().includes(searchQuery.toLowerCase()))
+                .map(img => ({ type: 'Obraz', content: img.prompt }));
+                
+            let doctorResults = [];
+            if (doctorAnalysis.toLowerCase().includes(searchQuery.toLowerCase())) {
+                doctorResults.push({ type: 'Analiza', content: doctorAnalysis });
+            }
+
+            setSearchResults([...chatResults, ...storyResults, ...videoResults, ...imageResults, ...doctorResults]);
+            setIsSearching(true);
+          };
+          
+          const clearSearch = () => {
+            setSearchQuery('');
+            setIsSearching(false);
+            setSearchResults([]);
+          };
+
+          const NavButton = ({ view, label, children, disabled = false }) => {
+            const isActive = activeView === view;
+            return (
+              React.createElement("button", {
+                onClick: () => !disabled && setActiveView(view),
+                className: `flex-1 flex flex-col items-center justify-center gap-1 p-2 rounded-lg transition-all duration-300 transform ${isActive ? 'bg-green-500/20 text-green-300 scale-105 shadow-md' : 'text-gray-400 hover:bg-green-500/10 hover:text-green-400'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`,
+                "aria-label": label,
+                "aria-current": isActive,
+                disabled: disabled,
+                title: disabled ? "Niedostępne dla modelu lokalnego" : ""
+              },
+                children,
+                React.createElement("span", { className: "text-xs font-medium" }, label)
+              )
+            );
+          };
+
+          const SearchResultsView = () => (
+            React.createElement("div", { className: "p-6 flex flex-col h-full" },
+                React.createElement("div", { className: "flex justify-between items-center mb-4" },
+                    React.createElement("h2", { className: "text-xl font-bold text-gray-200" }, "Wyniki wyszukiwania"),
+                    React.createElement("button", { onClick: clearSearch, className: "text-sm text-green-400 hover:underline" }, "Wyczyść")
+                ),
+                React.createElement("div", { className: "overflow-y-auto flex-grow pr-2 -mr-2" },
+                    searchResults.length > 0 ? (
+                        searchResults.map((result, index) => (
+                            React.createElement("div", { key: index, className: "bg-gray-800/50 p-4 rounded-lg mb-3 border border-green-500/20" },
+                                React.createElement("span", { className: `text-xs font-semibold px-2 py-1 rounded-full ${result.type === 'Czat' ? 'bg-green-500/20 text-green-300' : result.type === 'Opowieść' ? 'bg-purple-500/20 text-purple-300' : result.type === 'Wideo' ? 'bg-teal-500/20 text-teal-300' : result.type === 'Analiza' ? 'bg-red-500/20 text-red-300' : 'bg-blue-500/20 text-blue-300'}` },
+                                    result.type
+                                ),
+                                React.createElement("p", { className: "mt-2 text-sm text-gray-300 line-clamp-3" }, result.content)
+                            )
+                        ))
+                    ) : (
+                        React.createElement("div", { className: "text-center text-gray-400 mt-10" },
+                            React.createElement("p", null, `Brak wyników dla "${searchQuery}"`)
+                        )
+                    )
+                )
+            )
+          );
+
+          const renderActiveView = () => {
+            switch(activeView) {
+                case 'chat': return React.createElement(Chat, { personaName: persona?.name || 'Freeday', messages: chatMessages, isLoading: isChatLoading, onSendMessage: handleSendChatMessage, isReady: !!persona });
+                case 'story': return React.createElement(StoryGenerator, { story: storyContent, isLoading: isStoryLoading, error: storyError, onGenerateStory: handleGenerateStory });
+                case 'video': return React.createElement(VideoGenerator, { videoUrl: videoUrl, isLoading: isVideoLoading, loadingMessage: videoLoadingMessage, error: videoError, onGenerateVideo: handleGenerateVideo });
+                case 'image': return React.createElement(ImageGenerator, { imageUrl: imageUrl, isLoading: isImageLoading, error: imageError, onGenerateImage: handleGenerateImage });
+                case 'doctor': return React.createElement(Doctor, { analysis: doctorAnalysis, isLoading: isDoctorLoading, error: doctorError, onAnalyzeSymptoms: handleAnalyzeSymptoms });
+                default: return null;
+            }
+          }
+
+          return (
+            React.createElement("div", { className: "min-h-screen font-sans flex flex-col items-center justify-center p-4" },
+              React.createElement("div", { className: "w-full max-w-md h-[88vh] max-h-[900px] font-sans text-gray-200 overflow-hidden relative" },
+                !isAppReady && React.createElement(WelcomeScreen, null),
+                isAppReady && (
+                    React.createElement("div", { className: "w-full h-full bg-black/40 rounded-3xl shadow-2xl shadow-green-500/10 flex flex-col backdrop-blur-2xl border border-green-500/20 animate-fade-in" },
+                        React.createElement("header", { className: "p-4 border-b border-green-500/20" },
+                            React.createElement("div", { className: "flex justify-center mb-3" },
+                                React.createElement("div", { className: "p-1 rounded-lg bg-gray-900/50 flex text-sm shadow-inner" },
+                                    React.createElement("button", { onClick: () => handleApiProviderChange('gemini'), className: `flex items-center gap-2 px-3 py-1 rounded-md transition-all ${apiProvider === 'gemini' ? 'bg-gray-800 shadow text-green-300 font-semibold' : 'text-gray-400'}` },
+                                        React.createElement(CloudIcon, { className: "w-5 h-5" }), " Chmura"
+                                    ),
+                                    React.createElement("button", { onClick: () => localModelName && handleApiProviderChange('local'), disabled: !localModelName, className: `flex items-center gap-2 px-3 py-1 rounded-md transition-all ${apiProvider === 'local' ? 'bg-gray-800 shadow text-green-300 font-semibold' : 'text-gray-400'} disabled:text-gray-600 disabled:cursor-not-allowed`, title: !localModelName ? "Konfiguracja modelu lokalnego nieznaleziona" : `Użyj lokalnego serwera AI z modelem: ${localModelName}` },
+                                        React.createElement(ServerIcon, { className: "w-5 h-5" }),
+                                        apiProvider === 'local' && localModelName ? React.createElement("span", { className: "truncate max-w-32" }, localModelName) : 'Lokalny'
+                                    )
+                                )
+                            ),
+                            React.createElement("form", { onSubmit: handleSearch, className: "relative" },
+                                React.createElement("input", { type: "text", value: searchQuery, onChange: (e) => setSearchQuery(e.target.value), placeholder: "Szukaj wszędzie...", className: "w-full bg-gray-900/50 rounded-lg pl-10 pr-10 py-2 text-sm focus:ring-2 focus:ring-green-400 border-transparent focus:border-transparent outline-none transition shadow-inner placeholder-gray-500" }),
+                                React.createElement("div", { className: "absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" }, React.createElement(SearchIcon, { className: "w-5 h-5" })),
+                                searchQuery && (
+                                    React.createElement("button", { type: "button", onClick: clearSearch, className: "absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200" }, React.createElement(XMarkIcon, { className: "w-5 h-5" }))
+                                )
+                            )
+                        ),
+                        React.createElement("main", { className: "flex-grow overflow-hidden" },
+                          isSearching ? React.createElement(SearchResultsView, null) : renderActiveView()
+                        ),
+                        !isSearching && (
+                            React.createElement("nav", { className: "flex-shrink-0 p-2 border-t border-green-500/20 bg-black/20" },
+                                React.createElement("div", { className: "flex justify-around items-center gap-2" },
+                                    React.createElement(NavButton, { view: "chat", label: "Czat" }, React.createElement(ChatBubbleLeftRightIcon, { className: "w-6 h-6" })),
+                                    React.createElement(NavButton, { view: "doctor", label: "Doktor" }, React.createElement(HeartPlusIcon, { className: "w-6 h-6" })),
+                                    React.createElement(NavButton, { view: "story", label: "Opowieści" }, React.createElement(BookOpenIcon, { className: "w-6 h-6" })),
+                                    React.createElement(NavButton, { view: "image", label: "Obrazy", disabled: apiProvider === 'local' }, React.createElement(PaintBrushIcon, { className: "w-6 h-6" })),
+                                    React.createElement(NavButton, { view: "video", label: "Wideo", disabled: apiProvider === 'local' }, React.createElement(VideoCameraIcon, { className: "w-6 h-6" }))
+                                )
+                            )
+                        ),
+                         React.createElement("style", null, `
+                            @keyframes fade-in {
+                                0% { opacity: 0; transform: scale(0.95); }
+                                100% { opacity: 1; transform: scale(1); }
+                            }
+                            .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+                        `)
+                    )
+                )
+              )
+            )
+          );
+        };
+        // --- END: App.tsx ---
+
+        // --- START: index.tsx ---
+        const rootElement = document.getElementById('root');
+        if (!rootElement) {
+          throw new Error("Could not find root element to mount to");
+        }
+
+        const root = ReactDOM.createRoot(rootElement);
+        root.render(
+          React.createElement(React.StrictMode, null,
+            React.createElement(App, null)
+          )
+        );
+        // --- END: index.tsx ---
+
+    </script>
+</body>
+</html>
