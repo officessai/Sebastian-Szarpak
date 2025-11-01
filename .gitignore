@@ -22,3 +22,64 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ==============================
+# GLP Universe – .gitignore
+# ==============================
+
+# Fraktalne pliki systemowe
+*.sons
+*.seed
+*.fraktal
+*.q8
+*.Δ
+
+# Konfiguracje lokalne
+config.json
+settings_local.*
+.env
+keys/
+secrets/
+api_keys.txt
+
+# Dane osobiste, notatki, backupy
+private_notes/
+logs/
+backups/
+exports/
+drafts/
+tmp/
+*.log
+*.bak
+
+# Pliki multimedialne
+*.wav
+*.mp3
+*.mp4
+*.mov
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.psd
+
+# System / cache
+__pycache__/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+node_modules/
+dist/
+build/
+.cache/
+
+# Archiwa
+*.zip
+*.tar
+*.gz
+*.rar
+
+# ==============================
+# END GLP UNIVERSE IGNORE LIST
+# ==============================
