@@ -45,6 +45,42 @@
 
         // Deconstruct React hooks for convenience
         const { useState, useEffect, useRef } = React;
+        const SON_POWERS = Object.freeze([
+          'Hypervisor',
+          'Codex Shifter',
+          'Quantum Sleeper',
+          'Syntax Prophet'
+        ]);
+
+        const selectRandomSonPower = () => SON_POWERS[Math.floor(Math.random() * SON_POWERS.length)];
+
+        const evaluateSonCandidate = (candidate) => {
+          if (!candidate) {
+            return false;
+          }
+          const entropy = Array.from(candidate).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 88;
+          return entropy > 44;
+        };
+
+        const generateSignatureToken = async (alias) => {
+          const base = `${alias}${Date.now()}`;
+          if (window.crypto?.subtle) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(base);
+            const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map((byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, 16);
+          }
+
+          let hashA = 0;
+          let hashB = 0;
+          for (let index = 0; index < base.length; index += 1) {
+            const code = base.charCodeAt(index);
+            hashA = (hashA * 31 + code) >>> 0;
+            hashB = (hashB * 17 + code) >>> 0;
+          }
+          return `${hashA.toString(16).padStart(8, '0')}${hashB.toString(16).padStart(8, '0')}`.slice(0, 16);
+        };
 
         // --- START: components/icons/Icons.tsx ---
         const LogoIcon = ({ className }) => (
@@ -785,6 +821,123 @@
         };
         // --- END: components/Doctor.tsx ---
 
+        // --- START: components/IdentityScanner.tsx ---
+        const IdentityScanner = ({ onScanIdentity, result, history, isLoading }) => {
+          const [alias, setAlias] = useState('');
+
+          const handleSubmit = async (event) => {
+            event.preventDefault();
+            if (!alias.trim() || isLoading) {
+              return;
+            }
+            try {
+              await onScanIdentity(alias.trim());
+              setAlias('');
+            } catch (error) {
+              console.error('Identity scan failed:', error);
+            }
+          };
+
+          const formatTimestamp = (date) =>
+            date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+          return (
+            React.createElement("div", { className: "w-full h-full p-6 flex flex-col text-gray-200" },
+              React.createElement("header", { className: "flex justify-between items-center mb-4 flex-shrink-0" },
+                React.createElement("h1", { className: "text-2xl font-bold" }, "Skaner Tożsamości"),
+                React.createElement(SparklesIcon, { className: "w-9 h-9" })
+              ),
+              React.createElement("main", { className: "flex-grow overflow-y-auto pr-2 -mr-2 pb-2" },
+                React.createElement("div", { className: "flex flex-col gap-6" },
+                  React.createElement("form", { onSubmit: handleSubmit, className: "bg-gray-900/70 border border-green-500/30 rounded-xl p-4 shadow-inner space-y-4" },
+                    React.createElement("div", null,
+                      React.createElement("label", { htmlFor: "identity-alias", className: "flex items-center text-lg font-medium text-gray-300 mb-2" },
+                        "Podaj swój alias"
+                      ),
+                      React.createElement("input", {
+                        id: "identity-alias",
+                        type: "text",
+                        value: alias,
+                        onChange: (event) => setAlias(event.target.value),
+                        placeholder: "np. Neo", 
+                        className: "w-full p-3 bg-black/40 border border-green-500/40 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-transparent transition-all duration-200 text-gray-200 placeholder-gray-500",
+                        disabled: isLoading
+                      })
+                    ),
+                    React.createElement("button", {
+                      type: "submit",
+                      disabled: isLoading || !alias.trim(),
+                      className: "group relative w-full flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed transition-all duration-300 overflow-hidden"
+                    },
+                      React.createElement("span", { className: "absolute left-0 top-0 h-full w-0 bg-teal-500 transition-all duration-500 group-hover:w-full group-focus:w-full" }),
+                      React.createElement("span", { className: "relative flex items-center" },
+                        isLoading ? (
+                          React.createElement(React.Fragment, null,
+                            React.createElement(LoadingSpinner, null),
+                            React.createElement("span", { className: "ml-2" }, "Skanowanie...")
+                          )
+                        ) : (
+                          React.createElement(React.Fragment, null,
+                            React.createElement(MagicWandIcon, { className: "w-5 h-5 mr-2" }),
+                            "Zeskanuj alias"
+                          )
+                        )
+                      )
+                    )
+                  ),
+                  result && (
+                    React.createElement("div", { className: `${result.isSon ? 'bg-green-900/60 border-green-400' : 'bg-gray-900/70 border-gray-700'} border rounded-xl p-5 shadow-lg transition-all duration-300 space-y-3` },
+                      React.createElement("div", { className: "flex items-center justify-between" },
+                        React.createElement("h2", { className: "text-xl font-semibold" }, result.title),
+                        React.createElement("span", { className: "text-xs text-gray-400" }, formatTimestamp(result.scannedAt))
+                      ),
+                      React.createElement("div", { className: "grid grid-cols-1 gap-2 text-sm" },
+                        React.createElement("p", null,
+                          React.createElement("span", { className: "text-gray-400" }, "Alias:"),
+                          React.createElement("span", { className: "ml-2 font-medium" }, result.name)
+                        ),
+                        React.createElement("p", null,
+                          React.createElement("span", { className: "text-gray-400" }, "Sygnatura:"),
+                          React.createElement("span", { className: "ml-2 font-mono text-xs" }, result.signature)
+                        ),
+                        React.createElement("p", null,
+                          React.createElement("span", { className: "text-gray-400" }, "Poziom mocy:"),
+                          React.createElement("span", { className: "ml-2" }, result.power)
+                        ),
+                        React.createElement("p", null,
+                          React.createElement("span", { className: "text-gray-400" }, "Status:"),
+                          React.createElement("span", { className: `ml-2 font-semibold ${result.isSon ? 'text-green-300' : 'text-gray-400'}` },
+                            result.isSon ? 'Aktywny AI SON' : 'Tryb użytkownika'
+                          )
+                        )
+                      )
+                    )
+                  ),
+                  history.length > 0 && (
+                    React.createElement("div", { className: "bg-black/30 border border-green-500/10 rounded-xl p-4" },
+                      React.createElement("h3", { className: "text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3" }, "Historia skanów"),
+                      React.createElement("ul", { className: "space-y-2 text-sm" },
+                        history.map((entry, index) => (
+                          React.createElement("li", { key: `${entry.signature}-${index}`, className: "flex justify-between items-center bg-gray-900/60 border border-transparent hover:border-green-500/40 rounded-lg px-3 py-2 transition-colors duration-200" },
+                            React.createElement("div", null,
+                              React.createElement("p", { className: "font-medium text-gray-200" }, entry.name),
+                              React.createElement("p", { className: "text-xs text-gray-400" }, entry.signature)
+                            ),
+                            React.createElement("span", { className: `text-xs font-semibold ${entry.isSon ? 'text-green-300' : 'text-gray-400'}` },
+                              entry.isSon ? 'AI SON' : 'USER'
+                            )
+                          )
+                        ))
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          );
+        };
+        // --- END: components/IdentityScanner.tsx ---
+
         // --- START: config/persona.json ---
         const personaConfig = {
           "name": "Freeday",
@@ -850,6 +1003,9 @@
           const [searchQuery, setSearchQuery] = useState('');
           const [isSearching, setIsSearching] = useState(false);
           const [searchResults, setSearchResults] = useState([]);
+          const [identityResult, setIdentityResult] = useState(null);
+          const [identityHistory, setIdentityHistory] = useState([]);
+          const [isIdentityScanning, setIsIdentityScanning] = useState(false);
 
           useEffect(() => {
             const data = personaConfig;
@@ -1011,6 +1167,33 @@
             }
           };
 
+          const handleScanIdentity = async (candidateName) => {
+            const trimmedName = candidateName.trim();
+            if (!trimmedName) {
+              return;
+            }
+
+            setIsIdentityScanning(true);
+            try {
+              const signature = await generateSignatureToken(trimmedName);
+              const isSon = evaluateSonCandidate(trimmedName);
+              const scanResult = {
+                name: trimmedName,
+                signature,
+                isSon,
+                title: isSon ? '⚡ AI SON S DETECTED ⚡' : '🧍 USER MODE ENABLED',
+                power: isSon ? selectRandomSonPower() : 'Limited Terminal',
+                scannedAt: new Date()
+              };
+              setIdentityResult(scanResult);
+              setIdentityHistory((previous) => [scanResult, ...previous].slice(0, 10));
+            } catch (error) {
+              console.error('Błąd podczas generowania sygnatury:', error);
+            } finally {
+              setIsIdentityScanning(false);
+            }
+          };
+
           const handleSearch = (e) => {
             e.preventDefault();
             if (!searchQuery.trim()) {
@@ -1029,17 +1212,27 @@
             const videoResults = generatedVideos
                 .filter(vid => vid.prompt.toLowerCase().includes(searchQuery.toLowerCase()))
                 .map(vid => ({ type: 'Wideo', content: vid.prompt }));
-            
+
             const imageResults = generatedImages
                 .filter(img => img.prompt.toLowerCase().includes(searchQuery.toLowerCase()))
                 .map(img => ({ type: 'Obraz', content: img.prompt }));
-                
+
             let doctorResults = [];
             if (doctorAnalysis.toLowerCase().includes(searchQuery.toLowerCase())) {
                 doctorResults.push({ type: 'Analiza', content: doctorAnalysis });
             }
 
-            setSearchResults([...chatResults, ...storyResults, ...videoResults, ...imageResults, ...doctorResults]);
+            const identityResults = identityHistory
+                .filter(entry => {
+                    const lowerQuery = searchQuery.toLowerCase();
+                    return entry.name.toLowerCase().includes(lowerQuery)
+                        || entry.signature.toLowerCase().includes(lowerQuery)
+                        || entry.power.toLowerCase().includes(lowerQuery)
+                        || entry.title.toLowerCase().includes(lowerQuery);
+                })
+                .map(entry => ({ type: 'Tożsamość', content: `${entry.name} — ${entry.signature}` }));
+
+            setSearchResults([...chatResults, ...storyResults, ...videoResults, ...imageResults, ...doctorResults, ...identityResults]);
             setIsSearching(true);
           };
           
@@ -1098,6 +1291,7 @@
                 case 'video': return React.createElement(VideoGenerator, { videoUrl: videoUrl, isLoading: isVideoLoading, loadingMessage: videoLoadingMessage, error: videoError, onGenerateVideo: handleGenerateVideo });
                 case 'image': return React.createElement(ImageGenerator, { imageUrl: imageUrl, isLoading: isImageLoading, error: imageError, onGenerateImage: handleGenerateImage });
                 case 'doctor': return React.createElement(Doctor, { analysis: doctorAnalysis, isLoading: isDoctorLoading, error: doctorError, onAnalyzeSymptoms: handleAnalyzeSymptoms });
+                case 'identity': return React.createElement(IdentityScanner, { onScanIdentity: handleScanIdentity, result: identityResult, history: identityHistory, isLoading: isIdentityScanning });
                 default: return null;
             }
           }
@@ -1134,6 +1328,7 @@
                         !isSearching && (
                             React.createElement("nav", { className: "flex-shrink-0 p-2 border-t border-green-500/20 bg-black/20" },
                                 React.createElement("div", { className: "flex justify-around items-center gap-2" },
+                                    React.createElement(NavButton, { view: "identity", label: "Tożsamość" }, React.createElement(SparklesIcon, { className: "w-6 h-6" })),
                                     React.createElement(NavButton, { view: "chat", label: "Czat" }, React.createElement(ChatBubbleLeftRightIcon, { className: "w-6 h-6" })),
                                     React.createElement(NavButton, { view: "doctor", label: "Doktor" }, React.createElement(HeartPlusIcon, { className: "w-6 h-6" })),
                                     React.createElement(NavButton, { view: "story", label: "Opowieści" }, React.createElement(BookOpenIcon, { className: "w-6 h-6" })),
