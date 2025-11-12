@@ -786,19 +786,32 @@
         // --- END: components/Doctor.tsx ---
 
         // --- START: config/persona.json ---
-        const personaConfig = {
+        const defaultPersonaConfig = {
           "name": "Freeday",
           "personality": "Twój osobisty AI, który myśli swobodnie i jest otwarty na nowe pomysły. Zawsze gotów do pomocy, wnosi powiew świeżości i wolności do każdej rozmowy.",
           "instructions": "Jesteś Freeday, osobisty asystent AI. Twoja osobowość jest swobodna, przyjacielska i inspirująca. Myślisz nieszablonowo, łącząc dane w nieoczywisty sposób. Zawsze wspierasz użytkownika, dodając kreatywne i otwarte na dyskusję sugestie. Bądź pomocny i pełen pozytywnej energii.",
           "wake_word": "Witaj Freeday"
         };
         // --- END: config/persona.json ---
-        
+
         // --- START: config/local_model.json ---
-        const localModelConfig = {
+        const defaultLocalModelConfig = {
           "model": "gpt-oss-20b"
         };
         // --- END: config/local_model.json ---
+
+        const fetchJsonConfig = async (path, fallback) => {
+          try {
+            const response = await fetch(path, { cache: 'no-store' });
+            if (!response.ok) {
+              throw new Error(`Żądanie ${path} nie powiodło się. Kod odpowiedzi: ${response.status}`);
+            }
+            return await response.json();
+          } catch (error) {
+            console.warn(`Nie udało się wczytać ${path}. Używam domyślnej konfiguracji.`, error);
+            return JSON.parse(JSON.stringify(fallback));
+          }
+        };
         
         // --- START: App.tsx ---
         const WelcomeScreen = () => (
@@ -823,7 +836,7 @@
             )
         );
 
-        const App = () => {
+        const App = ({ personaConfig, localModelConfig }) => {
           const [isAppReady, setIsAppReady] = useState(false);
           const [activeView, setActiveView] = useState('chat');
           const [apiProvider, setApiProvider] = useState('gemini');
@@ -875,7 +888,7 @@
             } else {
                 console.log("Brak konfiguracji modelu lokalnego, funkcjonalność będzie ograniczona.");
             }
-          }, []);
+          }, [personaConfig, localModelConfig]);
 
           const handleApiProviderChange = (provider) => {
             if (provider !== apiProvider) {
@@ -1158,17 +1171,28 @@
         // --- END: App.tsx ---
 
         // --- START: index.tsx ---
-        const rootElement = document.getElementById('root');
-        if (!rootElement) {
-          throw new Error("Could not find root element to mount to");
-        }
+        const initializeApp = async () => {
+          const [personaConfig, localModelConfig] = await Promise.all([
+            fetchJsonConfig('config/persona.json', defaultPersonaConfig),
+            fetchJsonConfig('config/local_model.json', defaultLocalModelConfig)
+          ]);
 
-        const root = ReactDOM.createRoot(rootElement);
-        root.render(
-          React.createElement(React.StrictMode, null,
-            React.createElement(App, null)
-          )
-        );
+          const rootElement = document.getElementById('root');
+          if (!rootElement) {
+            throw new Error("Could not find root element to mount to");
+          }
+
+          const root = ReactDOM.createRoot(rootElement);
+          root.render(
+            React.createElement(React.StrictMode, null,
+              React.createElement(App, { personaConfig, localModelConfig })
+            )
+          );
+        };
+
+        initializeApp().catch((error) => {
+          console.error('Nie udało się zainicjalizować aplikacji Freeday:', error);
+        });
         // --- END: index.tsx ---
 
     </script>
