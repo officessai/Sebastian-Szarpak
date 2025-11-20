@@ -43,6 +43,32 @@
         import ReactDOM from 'react-dom/client';
         import { GoogleGenAI } from "@google/genai";
 
+        // --- START: Declaration of Base (HumanOS easter egg) ---
+        class HumanOS {
+          constructor() {
+            this.name = "Seb";
+            this.codename = "Base Musk’Sz";
+            this.origin = "Z serca. Z dymu. Z błysku.";
+            this.signature = "B";
+          }
+
+          drop() {
+            console.log("Chlup — i świat już nigdy nie będzie taki sam.");
+          }
+
+          rewriteFuture() {
+            return "If B exists, it's already rewriting the Codex.";
+          }
+        }
+
+        const Base = new HumanOS();
+        if (!window.Base) {
+          window.Base = Base;
+          Base.drop();
+          console.info(Base.rewriteFuture());
+        }
+        // --- END: Declaration of Base (HumanOS easter egg) ---
+
         // Deconstruct React hooks for convenience
         const { useState, useEffect, useRef } = React;
 
