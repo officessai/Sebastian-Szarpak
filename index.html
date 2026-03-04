@@ -823,6 +823,34 @@
             )
         );
 
+        const VcvRoadmap = () => {
+          const steps = [
+            'Idea / Problem',
+            'VCV – plan i architektura',
+            'Tech Core – budowa i testy',
+            'Product / Service',
+            'Partnerzy / Rynek',
+            'Reinvest / Scale'
+          ];
+
+          return (
+            React.createElement("div", { className: "h-full p-6 overflow-y-auto" },
+              React.createElement("div", { className: "bg-gray-900/50 border border-green-500/20 rounded-2xl p-5" },
+                React.createElement("h2", { className: "text-lg font-bold text-green-300 mb-1" }, "VCV — roadmap"),
+                React.createElement("p", { className: "text-sm text-gray-400 mb-6" }, "Schemat przejścia od pomysłu do skalowania produktu."),
+                React.createElement("div", { className: "space-y-2" },
+                  steps.map((step, index) => (
+                    React.createElement("div", { key: step, className: "flex flex-col items-center" },
+                      React.createElement("div", { className: "w-full text-center bg-black/40 border border-green-500/20 rounded-xl px-4 py-3 font-medium text-gray-100" }, step),
+                      index < steps.length - 1 && React.createElement("div", { className: "text-green-400/90 text-2xl leading-none py-1", "aria-hidden": true }, "↓")
+                    )
+                  ))
+                )
+              )
+            )
+          );
+        };
+
         const App = () => {
           const [isAppReady, setIsAppReady] = useState(false);
           const [activeView, setActiveView] = useState('chat');
@@ -1094,6 +1122,7 @@
           const renderActiveView = () => {
             switch(activeView) {
                 case 'chat': return React.createElement(Chat, { personaName: persona?.name || 'Freeday', messages: chatMessages, isLoading: isChatLoading, onSendMessage: handleSendChatMessage, isReady: !!persona });
+                case 'vcv': return React.createElement(VcvRoadmap, null);
                 case 'story': return React.createElement(StoryGenerator, { story: storyContent, isLoading: isStoryLoading, error: storyError, onGenerateStory: handleGenerateStory });
                 case 'video': return React.createElement(VideoGenerator, { videoUrl: videoUrl, isLoading: isVideoLoading, loadingMessage: videoLoadingMessage, error: videoError, onGenerateVideo: handleGenerateVideo });
                 case 'image': return React.createElement(ImageGenerator, { imageUrl: imageUrl, isLoading: isImageLoading, error: imageError, onGenerateImage: handleGenerateImage });
@@ -1135,6 +1164,7 @@
                             React.createElement("nav", { className: "flex-shrink-0 p-2 border-t border-green-500/20 bg-black/20" },
                                 React.createElement("div", { className: "flex justify-around items-center gap-2" },
                                     React.createElement(NavButton, { view: "chat", label: "Czat" }, React.createElement(ChatBubbleLeftRightIcon, { className: "w-6 h-6" })),
+                                    React.createElement(NavButton, { view: "vcv", label: "VCV" }, React.createElement(SparklesIcon, { className: "w-6 h-6" })),
                                     React.createElement(NavButton, { view: "doctor", label: "Doktor" }, React.createElement(HeartPlusIcon, { className: "w-6 h-6" })),
                                     React.createElement(NavButton, { view: "story", label: "Opowieści" }, React.createElement(BookOpenIcon, { className: "w-6 h-6" })),
                                     React.createElement(NavButton, { view: "image", label: "Obrazy", disabled: apiProvider === 'local' }, React.createElement(PaintBrushIcon, { className: "w-6 h-6" })),
